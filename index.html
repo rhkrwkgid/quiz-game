@@ -369,13 +369,11 @@
       </div>
 
       <div class="card">
-        <h3><span class="card-icon">🎀</span> 게임 설정</h3>
-        <div class="settings-row">
-          <div class="setting-item">
-            <label>정답 시 점수</label>
-            <input type="number" id="point-value" value="1" min="1" max="10" />
-          </div>
-        </div>
+        <h3><span class="card-icon">🎀</span> 게임 안내</h3>
+        <p style="font-size:14px; color:var(--text); line-height:1.7;">
+          모든 문제의 정답을 맞춘 뒤<br>
+          <strong style="color:var(--green);">소요 시간으로 순위 결정!</strong>
+        </p>
       </div>
     </div>
 
@@ -533,7 +531,6 @@ function startGame() {
   if (!players.length) { alert('참가자를 1명 이상 등록하세요.'); return; }
   questions = DEFAULT_QUESTIONS.map(dq => ({q: dq.q, a: dq.a}));
   if (!questions.length) { alert('퀴즈 문제를 입력하세요.'); return; }
-  pointValue = parseInt(document.getElementById('point-value').value) || 1;
   players.forEach(p => scores[p] = 0);
   currentQ = 0;
   gameStartTime = Date.now();

@@ -164,19 +164,6 @@
   .q-label { font-size: 12px; color: var(--green); font-weight: 600; letter-spacing: 0.05em; margin-bottom: 12px; }
   .q-text { font-size: 22px; font-weight: 600; line-height: 1.55; color: var(--text); }
 
-  .timer-row {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 16px;
-  }
-  .timer-display {
-    font-size: 48px; font-weight: 700;
-    font-variant-numeric: tabular-nums; line-height: 1;
-    transition: color 0.3s;
-  }
-  .timer-ok { color: var(--green); }
-  .timer-warn { color: #E24B4A; }
-  .timer-controls { display: flex; gap: 8px; }
-
   .answer-reveal {
     background: var(--green-light);
     border: 0.5px solid var(--green);
@@ -293,10 +280,6 @@
         <h3>게임 설정</h3>
         <div class="settings-row">
           <div class="setting-item">
-            <label>문제당 제한 시간 (초)</label>
-            <input type="number" id="time-limit" value="60" min="10" max="300" />
-          </div>
-          <div class="setting-item">
             <label>정답 시 점수</label>
             <input type="number" id="point-value" value="1" min="1" max="10" />
           </div>
@@ -304,7 +287,7 @@
       </div>
     </div>
 
-    <div class="card">
+    <div class="card" id="question-card" style="display:none;">
       <h3>퀴즈 문제 <span style="font-weight:400;">(15문제 — 수정 가능)</span></h3>
       <div id="question-list"></div>
     </div>
@@ -327,13 +310,8 @@
       <div class="q-text" id="q-text-display"></div>
     </div>
 
-    <div class="timer-row">
-      <div class="timer-display timer-ok" id="timer-display">60</div>
-      <div class="timer-controls">
-        <button onclick="toggleTimer()" id="timer-btn">시작</button>
-        <button onclick="resetTimer()">리셋</button>
-        <button onclick="showAnswer()">정답 공개</button>
-      </div>
+    <div style="margin-bottom: 16px;">
+      <button onclick="showAnswer()">정답 공개</button>
     </div>
 
     <div class="answer-reveal" id="answer-box">
@@ -396,8 +374,7 @@ const DEFAULT_QUESTIONS = [
 ];
 
 let players = [], questions = [], scores = {};
-let currentQ = 0, timerVal = 60, timerMax = 60;
-let timerInterval = null, timerRunning = false;
+let currentQ = 0;
 let pointValue = 1, awarded = false;
 
 // ── Build Q list ──
@@ -435,14 +412,8 @@ function renderTags() {
 // ── Start ──
 function startGame() {
   if (!players.length) { alert('참가자를 1명 이상 등록하세요.'); return; }
-  questions = [];
-  for (let i = 0; i < 15; i++) {
-    const q = document.getElementById('q'+i)?.value.trim();
-    const a = document.getElementById('a'+i)?.value.trim();
-    if (q && a) questions.push({q, a});
-  }
+  questions = DEFAULT_QUESTIONS.map(dq => ({q: dq.q, a: dq.a}));
   if (!questions.length) { alert('퀴즈 문제를 입력하세요.'); return; }
-  timerMax = parseInt(document.getElementById('time-limit').value) || 60;
   pointValue = parseInt(document.getElementById('point-value').value) || 1;
   players.forEach(p => scores[p] = 0);
   currentQ = 0;
@@ -457,8 +428,7 @@ function showScreen(name) {
 
 // ── Load Q ──
 function loadQuestion() {
-  clearInterval(timerInterval); timerRunning = false; awarded = false;
-  timerVal = timerMax;
+  awarded = false;
   const q = questions[currentQ];
   document.getElementById('q-num-display').textContent = currentQ + 1;
   document.getElementById('q-text-display').textContent = q.q;
@@ -466,9 +436,6 @@ function loadQuestion() {
   document.getElementById('progress-fill').style.width = `${(currentQ / questions.length) * 100}%`;
   document.getElementById('answer-box').classList.remove('show');
   document.getElementById('answer-display').textContent = q.a;
-  document.getElementById('timer-display').textContent = timerMax;
-  document.getElementById('timer-display').className = 'timer-display timer-ok';
-  document.getElementById('timer-btn').textContent = '시작';
   document.getElementById('prev-btn').disabled = currentQ === 0;
   document.getElementById('next-btn').textContent = currentQ < questions.length - 1 ? '다음 문제 →' : '최종 결과 →';
   renderPlayers();
@@ -488,35 +455,8 @@ function awardPoint(name) {
   if (awarded) return;
   awarded = true;
   scores[name] += pointValue;
-  clearInterval(timerInterval); timerRunning = false;
-  document.getElementById('timer-btn').textContent = '시작';
   renderPlayers();
   document.getElementById('pc-'+CSS.escape(name))?.classList.add('buzz');
-}
-
-// ── Timer ──
-function toggleTimer() {
-  if (timerRunning) {
-    clearInterval(timerInterval); timerRunning = false;
-    document.getElementById('timer-btn').textContent = '재개';
-  } else {
-    timerRunning = true;
-    document.getElementById('timer-btn').textContent = '일시정지';
-    timerInterval = setInterval(() => {
-      timerVal--;
-      const el = document.getElementById('timer-display');
-      el.textContent = timerVal;
-      el.className = 'timer-display ' + (timerVal <= 10 ? 'timer-warn' : 'timer-ok');
-      if (timerVal <= 0) { clearInterval(timerInterval); timerRunning = false; document.getElementById('timer-btn').textContent = '시작'; showAnswer(); }
-    }, 1000);
-  }
-}
-
-function resetTimer() {
-  clearInterval(timerInterval); timerRunning = false; timerVal = timerMax;
-  document.getElementById('timer-display').textContent = timerMax;
-  document.getElementById('timer-display').className = 'timer-display timer-ok';
-  document.getElementById('timer-btn').textContent = '시작';
 }
 
 function showAnswer() { document.getElementById('answer-box').classList.add('show'); }
@@ -551,7 +491,6 @@ function renderBoard(id) {
 
 // ── Final ──
 function showFinalResults() {
-  clearInterval(timerInterval);
   const sorted = [...players].sort((a, b) => scores[b] - scores[a]);
   const w = sorted[0];
   document.getElementById('winner-card').innerHTML = `
@@ -564,7 +503,7 @@ function showFinalResults() {
 }
 
 function resetGame() {
-  clearInterval(timerInterval); players = []; scores = {}; currentQ = 0;
+  players = []; scores = {}; currentQ = 0;
   renderTags(); showScreen('setup');
 }
 

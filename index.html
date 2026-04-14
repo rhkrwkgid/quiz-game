@@ -412,8 +412,7 @@
     <div class="answer-result" id="answer-result"></div>
 
     <div class="game-controls">
-      <button onclick="prevQuestion()" id="prev-btn">← 이전</button>
-      <button onclick="nextQuestion()" class="btn-primary" id="next-btn">다음 문제 →</button>
+      <button onclick="nextQuestion()" class="btn-primary" id="next-btn" disabled>다음 문제 →</button>
       <div style="flex:1;"></div>
       <button onclick="resetGame()" class="btn-ghost">처음으로</button>
     </div>
@@ -465,6 +464,7 @@ const DEFAULT_QUESTIONS = [
 let players = [], questions = [], scores = {};
 let currentQ = 0;
 let pointValue = 1, awarded = false;
+let gameStartTime = null;
 
 // ── Build Q list ──
 function buildQuestionList() {
@@ -537,6 +537,7 @@ function startGame() {
   pointValue = parseInt(document.getElementById('point-value').value) || 1;
   players.forEach(p => scores[p] = 0);
   currentQ = 0;
+  gameStartTime = Date.now();
   showScreen('game'); loadQuestion();
 }
 
@@ -560,7 +561,7 @@ function loadQuestion() {
   const result = document.getElementById('answer-result');
   result.className = 'answer-result';
   result.textContent = '';
-  document.getElementById('prev-btn').disabled = currentQ === 0;
+  document.getElementById('next-btn').disabled = true;
   document.getElementById('next-btn').textContent = currentQ < questions.length - 1 ? '다음 문제 →' : '최종 결과 →';
 }
 
@@ -571,22 +572,25 @@ function submitAnswer() {
   if (awarded) return;
   const input = document.getElementById('answer-input').value.trim();
   if (!input) return;
-  awarded = true;
   const correct = questions[currentQ].a;
   const normalize = s => s.replace(/[\s()（）]/g, '').toLowerCase();
   const isCorrect = normalize(input) === normalize(correct) || normalize(correct).includes(normalize(input)) || normalize(input).includes(normalize(correct));
   const result = document.getElementById('answer-result');
   const playerName = localStorage.getItem('quizPlayerName');
   if (isCorrect) {
+    awarded = true;
     result.className = 'answer-result correct';
     result.textContent = '정답입니다!';
     if (playerName && scores[playerName] !== undefined) scores[playerName] += pointValue;
+    document.getElementById('answer-input').disabled = true;
+    document.getElementById('submit-btn').disabled = true;
+    document.getElementById('next-btn').disabled = false;
   } else {
     result.className = 'answer-result wrong';
-    result.textContent = `오답입니다. 정답: ${correct}`;
+    result.textContent = '오답입니다. 다시 시도해보세요!';
+    document.getElementById('answer-input').value = '';
+    document.getElementById('answer-input').focus();
   }
-  document.getElementById('answer-input').disabled = true;
-  document.getElementById('submit-btn').disabled = true;
 }
 
 // ── Nav ──
@@ -594,15 +598,14 @@ function nextQuestion() {
   if (currentQ < questions.length - 1) { currentQ++; loadQuestion(); }
   else showFinalResults();
 }
-function prevQuestion() { if (currentQ > 0) { currentQ--; loadQuestion(); } }
 
 // ── Scoreboard ──
 function goScoreboard() { renderBoard('scoreboard-list'); showScreen('scoreboard'); }
 function backToGame() { showScreen('game'); }
 
 function renderBoard(id) {
-  const sorted = [...players].sort((a, b) => scores[b] - scores[a]);
-  const max = Math.max(...Object.values(scores), 1);
+  const sorted = [...players].filter(p => scores[p] > 0).sort((a, b) => scores[a] - scores[b]);
+  const max = Math.max(...sorted.map(p => scores[p]), 1);
   const medals = [['gold','1위'],['silver','2위'],['bronze','3위']];
   document.getElementById(id).innerHTML = sorted.map((p, i) => {
     const [cls, label] = medals[i] || ['', `${i+1}위`];
@@ -612,20 +615,32 @@ function renderBoard(id) {
         <div class="rank-name">${p}</div>
         <div class="rank-bar-bg"><div class="rank-bar" style="width:${Math.round((scores[p]/max)*100)}%"></div></div>
       </div>
-      <div class="rank-score">${scores[p]}점</div>
+      <div class="rank-score">${formatTime(scores[p])}</div>
     </div>`;
   }).join('');
 }
 
 // ── Final ──
+function formatTime(ms) {
+  const totalSec = Math.floor(ms / 1000);
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  return min > 0 ? `${min}분 ${sec}초` : `${sec}초`;
+}
+
 function showFinalResults() {
-  const sorted = [...players].sort((a, b) => scores[b] - scores[a]);
-  const w = sorted[0];
+  const elapsed = Date.now() - gameStartTime;
+  const playerName = localStorage.getItem('quizPlayerName');
+  if (playerName) {
+    scores[playerName] = elapsed;
+  }
+  const sorted = [...players].filter(p => scores[p] > 0).sort((a, b) => scores[a] - scores[b]);
+  const w = sorted[0] || players[0];
   document.getElementById('winner-card').innerHTML = `
     <div class="trophy">🏆</div>
-    <div class="winner-label">최종 우승자</div>
+    <div class="winner-label">퀴즈 완료!</div>
     <div class="winner-name">${w}</div>
-    <div class="winner-score">${scores[w]}점</div>`;
+    <div class="winner-score">소요 시간: ${formatTime(scores[w])}</div>`;
   renderBoard('final-list');
   showScreen('final');
 }

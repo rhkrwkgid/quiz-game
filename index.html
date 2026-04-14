@@ -581,7 +581,7 @@ function submitAnswer() {
     if (playerName && scores[playerName] !== undefined) scores[playerName] += pointValue;
     document.getElementById('answer-input').disabled = true;
     document.getElementById('submit-btn').disabled = true;
-    setTimeout(() => nextQuestion(), 800);
+    setTimeout(() => nextQuestion(), 500);
   } else {
     result.className = 'answer-result wrong';
     result.textContent = '오답입니다. 다시 시도해보세요!';

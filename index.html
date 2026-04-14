@@ -394,20 +394,51 @@ function buildQuestionList() {
 document.getElementById('player-input').addEventListener('keydown', e => { if (e.key === 'Enter') addPlayer(); });
 
 function addPlayer() {
+  if (localStorage.getItem('quizPlayerName')) return;
   const inp = document.getElementById('player-input');
   const name = inp.value.trim();
   if (!name || players.includes(name)) { inp.value = ''; return; }
   players.push(name); scores[name] = 0;
-  renderTags(); inp.value = ''; inp.focus();
+  localStorage.setItem('quizPlayerName', name);
+  renderTags(); inp.value = '';
+  disableRegistration(name);
 }
 
-function removePlayer(i) { delete scores[players[i]]; players.splice(i, 1); renderTags(); }
+function disableRegistration(name) {
+  const inp = document.getElementById('player-input');
+  inp.disabled = true;
+  inp.placeholder = `"${name}" 등록 완료`;
+  inp.nextElementSibling && (inp.nextElementSibling.style.display = 'none');
+}
+
+function removePlayer(i) {
+  const removed = players[i];
+  if (localStorage.getItem('quizPlayerName') === removed) {
+    localStorage.removeItem('quizPlayerName');
+    const inp = document.getElementById('player-input');
+    inp.disabled = false;
+    inp.placeholder = '이름 입력 후 Enter';
+    const btn = document.querySelector('.player-row .btn-sm');
+    if (btn) btn.style.display = '';
+  }
+  delete scores[removed]; players.splice(i, 1); renderTags();
+}
 
 function renderTags() {
   document.getElementById('player-tags').innerHTML =
     players.map((p, i) => `<span class="tag">${p}<button class="tag-del" onclick="removePlayer(${i})">×</button></span>`).join('');
   document.getElementById('player-count').textContent = players.length;
 }
+
+// ── 페이지 로드 시 이미 등록된 이름 복원 ──
+(function restorePlayer() {
+  const saved = localStorage.getItem('quizPlayerName');
+  if (saved) {
+    players.push(saved); scores[saved] = 0;
+    renderTags();
+    disableRegistration(saved);
+  }
+})();
 
 // ── Start ──
 function startGame() {

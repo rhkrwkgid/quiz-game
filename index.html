@@ -164,55 +164,34 @@
   .q-label { font-size: 12px; color: var(--green); font-weight: 600; letter-spacing: 0.05em; margin-bottom: 12px; }
   .q-text { font-size: 22px; font-weight: 600; line-height: 1.55; color: var(--text); }
 
-  .answer-reveal {
-    background: var(--green-light);
-    border: 0.5px solid var(--green);
+  .answer-input-row {
+    display: flex; gap: 8px; margin-bottom: 16px;
+  }
+  .answer-input-row input { flex: 1; }
+
+  .answer-result {
     border-radius: var(--radius);
     padding: 16px 20px;
     margin-bottom: 16px;
     display: none;
+    font-size: 16px;
+    font-weight: 600;
   }
-  .answer-reveal.show { display: block; }
-  .answer-reveal .label { font-size: 11px; color: var(--green-dark); font-weight: 600; letter-spacing: 0.04em; margin-bottom: 6px; }
-  .answer-reveal .ans { font-size: 20px; font-weight: 600; color: var(--green-dark); }
-
-  .hint { font-size: 13px; color: var(--text2); margin-bottom: 10px; }
-
-  .players-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-    gap: 10px;
-    margin-bottom: 18px;
-  }
-
-  .player-card {
-    background: var(--bg);
-    border: 0.5px solid var(--border);
-    border-radius: var(--radius);
-    padding: 14px 10px;
-    text-align: center;
-    cursor: pointer;
-    transition: border-color 0.15s, background 0.15s, transform 0.1s;
-    position: relative;
-    user-select: none;
-  }
-  .player-card:hover { border-color: var(--border2); background: var(--bg2); }
-  .player-card.buzz {
-    border-color: var(--green);
+  .answer-result.correct {
+    display: block;
     background: var(--green-light);
-    transform: scale(1.04);
-    pointer-events: none;
+    border: 0.5px solid var(--green);
+    color: var(--green-dark);
   }
-  .player-card .p-name { font-size: 14px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
-  .player-card .p-score { font-size: 28px; font-weight: 700; color: var(--green); line-height: 1; }
-  .p-badge {
-    position: absolute; top: -7px; right: -7px;
-    background: var(--red); color: white;
-    border-radius: 50%; width: 22px; height: 22px;
-    font-size: 11px; font-weight: 700;
-    display: none; align-items: center; justify-content: center;
+  .answer-result.wrong {
+    display: block;
+    background: #fdeaea;
+    border: 0.5px solid var(--red);
+    color: var(--red);
   }
-  .player-card.buzz .p-badge { display: flex; }
+  @media (prefers-color-scheme: dark) {
+    .answer-result.wrong { background: #3d1c1c; }
+  }
 
   .game-controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 
@@ -310,17 +289,12 @@
       <div class="q-text" id="q-text-display"></div>
     </div>
 
-    <div style="margin-bottom: 16px;">
-      <button onclick="showAnswer()">정답 공개</button>
+    <div class="answer-input-row">
+      <input type="text" id="answer-input" placeholder="정답을 입력하세요" />
+      <button onclick="submitAnswer()" class="btn-primary" id="submit-btn">제출</button>
     </div>
 
-    <div class="answer-reveal" id="answer-box">
-      <div class="label">정 답</div>
-      <div class="ans" id="answer-display"></div>
-    </div>
-
-    <p class="hint">정답을 가장 빨리 말한 참가자 카드를 클릭하면 점수가 부여됩니다.</p>
-    <div class="players-grid" id="players-grid"></div>
+    <div class="answer-result" id="answer-result"></div>
 
     <div class="game-controls">
       <button onclick="prevQuestion()" id="prev-btn">← 이전</button>
@@ -465,32 +439,40 @@ function loadQuestion() {
   document.getElementById('q-text-display').textContent = q.q;
   document.getElementById('q-counter').textContent = `문제 ${currentQ+1} / ${questions.length}`;
   document.getElementById('progress-fill').style.width = `${(currentQ / questions.length) * 100}%`;
-  document.getElementById('answer-box').classList.remove('show');
-  document.getElementById('answer-display').textContent = q.a;
+  document.getElementById('answer-input').value = '';
+  document.getElementById('answer-input').disabled = false;
+  document.getElementById('submit-btn').disabled = false;
+  const result = document.getElementById('answer-result');
+  result.className = 'answer-result';
+  result.textContent = '';
   document.getElementById('prev-btn').disabled = currentQ === 0;
   document.getElementById('next-btn').textContent = currentQ < questions.length - 1 ? '다음 문제 →' : '최종 결과 →';
-  renderPlayers();
 }
 
-// ── Players grid ──
-function renderPlayers() {
-  document.getElementById('players-grid').innerHTML = players.map(p => `
-    <div class="player-card" id="pc-${CSS.escape(p)}" onclick="awardPoint('${p.replace(/'/g,"\\'")}')">
-      <div class="p-badge">+${pointValue}</div>
-      <div class="p-name">${p}</div>
-      <div class="p-score">${scores[p]}</div>
-    </div>`).join('');
-}
+// ── 정답 제출 ──
+document.getElementById('answer-input').addEventListener('keydown', e => { if (e.key === 'Enter') submitAnswer(); });
 
-function awardPoint(name) {
+function submitAnswer() {
   if (awarded) return;
+  const input = document.getElementById('answer-input').value.trim();
+  if (!input) return;
   awarded = true;
-  scores[name] += pointValue;
-  renderPlayers();
-  document.getElementById('pc-'+CSS.escape(name))?.classList.add('buzz');
+  const correct = questions[currentQ].a;
+  const normalize = s => s.replace(/[\s()（）]/g, '').toLowerCase();
+  const isCorrect = normalize(input) === normalize(correct) || normalize(correct).includes(normalize(input)) || normalize(input).includes(normalize(correct));
+  const result = document.getElementById('answer-result');
+  const playerName = localStorage.getItem('quizPlayerName');
+  if (isCorrect) {
+    result.className = 'answer-result correct';
+    result.textContent = '정답입니다!';
+    if (playerName && scores[playerName] !== undefined) scores[playerName] += pointValue;
+  } else {
+    result.className = 'answer-result wrong';
+    result.textContent = `오답입니다. 정답: ${correct}`;
+  }
+  document.getElementById('answer-input').disabled = true;
+  document.getElementById('submit-btn').disabled = true;
 }
-
-function showAnswer() { document.getElementById('answer-box').classList.add('show'); }
 
 // ── Nav ──
 function nextQuestion() {

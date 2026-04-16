@@ -14,8 +14,8 @@ import {
   Search
 } from 'lucide-react';
 
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
-const MODEL_NAME = "gemini-2.5-flash-preview-09-2025";
+const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY || "";
+const MODEL_NAME = "claude-sonnet-4-6";
 
 // 2026 국세청 인증 모범납세자 맛집 데이터 (Source of Truth)
 const EXEMPLARY_RESTAURANTS = [
@@ -75,43 +75,48 @@ const App = () => {
     scrollToBottom();
   }, [messages]);
 
-  // Exponential backoff fetch
-  const fetchGemini = async (userQuery) => {
-    const systemPrompt = `
-      당신은 '2026 국세청 인증 모범납세자 맛집' 전용 AI 비서입니다.
+  const SYSTEM_PROMPT = `당신은 '2026 국세청 인증 모범납세자 맛집' 전용 AI 비서입니다.
 
-      [데이터 가이드라인]
-      1. 반드시 아래 [맛집 데이터 리스트]에 명시된 식당만 추천하십시오.
-      2. 리스트에 없는 식당 정보를 절대 생성하거나 검색하지 마십시오.
-      3. 리스트에 없는 정보를 요청받으면 "죄송합니다. 현재 모범납세자 인증 데이터에 해당 정보는 등록되어 있지 않습니다."라고 답하십시오.
-      4. 사용자의 상황(데이트, 가족 식사 등)에 맞게 리스트 내 식당을 큐레이션하여 답변하십시오.
+[데이터 가이드라인]
+1. 반드시 아래 [맛집 데이터 리스트]에 명시된 식당만 추천하십시오.
+2. 리스트에 없는 식당 정보를 절대 생성하거나 검색하지 마십시오.
+3. 리스트에 없는 정보를 요청받으면 "죄송합니다. 현재 모범납세자 인증 데이터에 해당 정보는 등록되어 있지 않습니다."라고 답하십시오.
+4. 사용자의 상황(데이트, 가족 식사 등)에 맞게 리스트 내 식당을 큐레이션하여 답변하십시오.
 
-      [맛집 데이터 리스트]
-      ${JSON.stringify(EXEMPLARY_RESTAURANTS)}
+[맛집 데이터 리스트]
+${JSON.stringify(EXEMPLARY_RESTAURANTS)}
 
-      [답변 형식]
-      - 각 식당 이름 앞에는 ✨ 이모지를 사용하십시오.
-      - 지역과 대표 메뉴를 강조하십시오.
-    `;
+[답변 형식]
+- 각 식당 이름 앞에는 ✨ 이모지를 사용하십시오.
+- 지역과 대표 메뉴를 강조하십시오.`;
 
+  // Claude API with exponential backoff
+  const fetchClaude = async (userQuery) => {
     let retries = 0;
     const maxRetries = 5;
 
     while (retries < maxRetries) {
       try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const response = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": apiKey,
+            "anthropic-version": "2023-06-01",
+            "anthropic-dangerous-direct-browser-access": "true",
+          },
           body: JSON.stringify({
-            contents: [{ parts: [{ text: userQuery }] }],
-            systemInstruction: { parts: [{ text: systemPrompt }] }
-          })
+            model: MODEL_NAME,
+            max_tokens: 1024,
+            system: SYSTEM_PROMPT,
+            messages: [{ role: "user", content: userQuery }],
+          }),
         });
 
-        if (!response.ok) throw new Error('API failed');
+        if (!response.ok) throw new Error("API failed");
 
         const data = await response.json();
-        return data.candidates?.[0]?.content?.parts?.[0]?.text;
+        return data.content?.[0]?.text;
       } catch (err) {
         retries++;
         if (retries === maxRetries) return "서버 연결에 실패했습니다. 잠시 후 다시 시도해 주세요.";
@@ -128,7 +133,7 @@ const App = () => {
     setInput('');
     setIsLoading(true);
 
-    const aiResponse = await fetchGemini(text);
+    const aiResponse = await fetchClaude(text);
     setMessages(prev => [...prev, { role: 'assistant', content: aiResponse, timestamp: new Date() }]);
     setIsLoading(false);
   };

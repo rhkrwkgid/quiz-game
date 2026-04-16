@@ -14,7 +14,7 @@ import {
   Search
 } from 'lucide-react';
 
-const apiKey = ""; // 시스템에서 자동으로 제공됨
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
 const MODEL_NAME = "gemini-2.5-flash-preview-09-2025";
 
 // 2026 국세청 인증 모범납세자 맛집 데이터 (Source of Truth)

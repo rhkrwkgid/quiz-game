@@ -331,6 +331,21 @@
   .winner-name { font-size: 36px; font-weight: 700; color: var(--green-dark); }
   .winner-score { font-size: 18px; color: var(--green); margin-top: 6px; }
 
+  .btn-share {
+    margin-top: 16px;
+    background: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.4);
+    color: #fff;
+    border-radius: 10px;
+    padding: 10px 24px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s;
+  }
+  .btn-share:hover { background: rgba(255,255,255,0.3); }
+
   .section-title { font-size: 18px; font-weight: 600; margin-bottom: 14px; }
   .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
   .divider { border: none; border-top: 0.5px solid var(--border); margin: 20px 0; }
@@ -654,13 +669,58 @@ function showFinalResults() {
   }
   const results = loadResults();
   const w = results[0];
-  document.getElementById('winner-card').innerHTML = w ? `
-    <div class="trophy">🏆</div>
-    <div class="winner-label">현재 1위</div>
-    <div class="winner-name">${w.name}</div>
-    <div class="winner-score">소요 시간: ${formatTime(w.time)}</div>` : '';
+  // 완료 화면: 본인 기록 + 공유 버튼
+  let html = '';
+  if (playerName) {
+    const shareData = btoa(encodeURIComponent(JSON.stringify({ n: playerName, t: elapsed })));
+    const shareUrl = location.href.split('?')[0].split('#')[0] + '?r=' + shareData;
+    html = `
+      <div class="trophy">🎉</div>
+      <div class="winner-label">퀴즈 완료!</div>
+      <div class="winner-name">${playerName}</div>
+      <div class="winner-score">소요 시간: ${formatTime(elapsed)}</div>
+      <button onclick="copyShareLink('${shareData}')" class="btn-share" id="share-btn">📋 결과 공유하기</button>
+      <p id="share-msg" style="font-size:12px; color:rgba(255,255,255,0.7); margin-top:8px;"></p>`;
+  } else if (w) {
+    html = `
+      <div class="trophy">🏆</div>
+      <div class="winner-label">현재 1위</div>
+      <div class="winner-name">${w.name}</div>
+      <div class="winner-score">소요 시간: ${formatTime(w.time)}</div>`;
+  }
+  document.getElementById('winner-card').innerHTML = html;
   renderRanking('final-list');
   showScreen('final');
+}
+
+function copyShareLink(data) {
+  const url = location.href.split('?')[0].split('#')[0] + '?r=' + data;
+  navigator.clipboard.writeText(url).then(() => {
+    document.getElementById('share-msg').textContent = '링크가 복사되었습니다! 선생님께 보내주세요.';
+    document.getElementById('share-btn').textContent = '✅ 복사 완료!';
+  }).catch(() => {
+    prompt('아래 링크를 복사해서 선생님께 보내주세요:', url);
+  });
+}
+
+// URL 파라미터로 전달된 결과 수집
+function collectFromUrl() {
+  const params = new URLSearchParams(location.search);
+  const r = params.get('r');
+  if (r) {
+    try {
+      const data = JSON.parse(decodeURIComponent(atob(r)));
+      if (data.n && data.t > 0) {
+        saveResult(data.n, data.t);
+        // URL 정리
+        history.replaceState(null, '', location.href.split('?')[0]);
+        // 바로 순위 화면 표시
+        showRanking();
+        return true;
+      }
+    } catch(e) {}
+  }
+  return false;
 }
 
 function showRanking() {
@@ -698,6 +758,7 @@ function resetGame() {
 }
 
 buildQuestionList();
+collectFromUrl();
 </script>
 </body>
 </html>

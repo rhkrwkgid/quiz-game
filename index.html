@@ -685,7 +685,16 @@ function clearRanking() {
 
 function resetGame() {
   players = []; scores = {}; currentQ = 0;
-  renderTags(); showScreen('setup');
+  // localStorage에 저장된 참가자 복원
+  const saved = localStorage.getItem('quizPlayerName');
+  if (saved) {
+    players.push(saved); scores[saved] = 0;
+    renderTags();
+    disableRegistration(saved);
+  } else {
+    renderTags();
+  }
+  showScreen('setup');
 }
 
 buildQuestionList();

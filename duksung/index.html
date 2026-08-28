@@ -79,11 +79,7 @@
   .timer-card{background:var(--card);border:2px solid var(--border);border-radius:14px;padding:12px 16px;text-align:center;min-width:100px;}
   .timer-num{font-size:34px;font-weight:800;line-height:1;margin-bottom:3px;transition:color 0.3s;color:var(--ds-red);}
   .timer-num.warn{color:var(--warn);}.timer-num.danger{color:var(--error);}
-  .timer-label{font-size:10px;color:var(--text-sub);font-weight:600;margin-bottom:8px;}
-  .timer-btns{display:flex;gap:4px;}
-  .timer-btns button{flex:1;background:var(--tint);border:1px solid var(--border);border-radius:7px;
-    padding:5px 3px;font-size:10px;font-weight:600;color:var(--text-sub);cursor:pointer;}
-  .timer-btns button:hover{background:var(--ds-red);color:#FFFFFF;border-color:var(--ds-red);}
+  .timer-label{font-size:10px;color:var(--text-sub);font-weight:600;}
   .input-area{background:var(--card);border:2px solid var(--border);border-radius:14px;
     padding:18px 20px;margin-bottom:14px;transition:border-color 0.2s;}
   .input-area.on{border-color:var(--ds-red);}
@@ -178,11 +174,8 @@
     .hero{padding:24px 20px;}
     .q-text{font-size:17px;}
     .game-top{flex-direction:column;}
-    .timer-card{width:100%;display:flex;align-items:center;gap:10px;padding:10px 14px;}
+    .timer-card{width:100%;display:flex;align-items:baseline;justify-content:center;gap:6px;padding:10px 14px;}
     .timer-card .timer-num{font-size:26px;margin-bottom:0;}
-    .timer-card .timer-label{margin-bottom:0;margin-right:auto;}
-    .timer-btns{width:140px;}
-    .timer-btns button{padding:7px 3px;font-size:11px;}
     .lb-header,.lb-row{grid-template-columns:26px 40px 1fr 64px 64px;padding-left:10px;padding-right:10px;}
   }
 </style>
@@ -244,10 +237,6 @@
     <div class="timer-card">
       <div class="timer-num" id="timer">0</div>
       <div class="timer-label">초</div>
-      <div class="timer-btns">
-        <button onclick="toggleTimer()" id="tbtn">⏸</button>
-        <button onclick="resetTimer()">리셋</button>
-      </div>
     </div>
   </div>
   <div class="input-area on" id="input-area">
@@ -390,7 +379,7 @@ const Q=[
 ];
 
 let myName='',myScore=0,myTime=0;
-let current=0,qStart=0,timerVal=0,timerOn=false,timerInterval=null;
+let current=0,qStart=0,timerVal=0,timerInterval=null;
 let tries=0,solved=false,prevScreen='setup';
 let usedLocal=false;
 
@@ -728,15 +717,13 @@ function restart(){show('setup');}
 
 // ── 타이머 (문제별 경과 시간 카운트업) ──
 function startTimer(){
-  timerVal=1;timerOn=true;updateTimerUI();
+  timerVal=1;updateTimerUI();
   clearInterval(timerInterval);
   timerInterval=setInterval(function(){
-    if(!timerOn)return;timerVal++;updateTimerUI();
+    timerVal++;updateTimerUI();
   },1000);
 }
-function stopTimer(){timerOn=false;clearInterval(timerInterval);}
-function toggleTimer(){timerOn=!timerOn;document.getElementById('tbtn').textContent=timerOn?'⏸':'▶';}
-function resetTimer(){stopTimer();document.getElementById('tbtn').textContent='⏸';startTimer();}
+function stopTimer(){clearInterval(timerInterval);}
 function updateTimerUI(){
   const el=document.getElementById('timer');el.textContent=timerVal;
   el.className='timer-num'+(timerVal>=50?' danger':timerVal>=30?' warn':'');

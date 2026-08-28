@@ -141,10 +141,10 @@
   .lb-sub{font-size:13px;color:var(--text-sub);text-align:center;margin-bottom:20px;}
   .lb-note{font-size:12px;color:var(--warn);text-align:center;margin-bottom:14px;min-height:16px;font-weight:600;}
   .lb-card{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:16px;}
-  .lb-header{display:grid;grid-template-columns:32px 52px 1fr 64px 72px 76px;
+  .lb-header{display:grid;grid-template-columns:32px 52px 1fr 84px 84px;
     padding:10px 18px;background:var(--tint);
     font-size:10px;font-weight:700;color:var(--text-sub);text-transform:uppercase;letter-spacing:0.8px;}
-  .lb-row{display:grid;grid-template-columns:32px 52px 1fr 64px 72px 76px;
+  .lb-row{display:grid;grid-template-columns:32px 52px 1fr 84px 84px;
     padding:13px 18px;border-top:1px solid var(--border);align-items:center;}
   .lb-check{display:flex;align-items:center;justify-content:center;}
   .lb-checkbox{width:16px;height:16px;cursor:pointer;}
@@ -153,8 +153,7 @@
   .lb-row.bronze{background:#FFF7ED;}
   .lb-rank{font-size:20px;}
   .lb-name{font-size:14px;font-weight:700;}
-  .lb-score{font-size:14px;font-weight:800;color:var(--ds-red);text-align:center;}
-  .lb-time{font-size:13px;font-weight:700;color:var(--warn);text-align:center;}
+  .lb-time{font-size:15px;font-weight:800;color:var(--ds-red);text-align:center;}
   .lb-avg{font-size:12px;font-weight:600;color:var(--text-sub);text-align:center;}
   .lb-empty{padding:36px;text-align:center;color:var(--text-sub);font-size:14px;line-height:1.8;}
   .lb-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
@@ -184,7 +183,7 @@
     .timer-card .timer-label{margin-bottom:0;margin-right:auto;}
     .timer-btns{width:140px;}
     .timer-btns button{padding:7px 3px;font-size:11px;}
-    .lb-header,.lb-row{grid-template-columns:26px 40px 1fr 50px 56px 56px;padding-left:10px;padding-right:10px;}
+    .lb-header,.lb-row{grid-template-columns:26px 40px 1fr 64px 64px;padding-left:10px;padding-right:10px;}
   }
 </style>
 </head>
@@ -206,7 +205,8 @@
   <div class="hero">
     <h1>🎓 AI 시대 커리어 퀴즈</h1>
     <p>일자리 변화 · AI 채용 · 취업 준비 자료에서 출제된 주관식 문제입니다<br>
-      모르면 NotebookLM에서 검색해서 직접 입력하세요!</p>
+      모르면 NotebookLM에서 검색해서 직접 입력하세요!<br>
+      <strong>정답을 맞혀야 다음 문제로 넘어가며, 총 소요시간이 짧을수록 높은 순위입니다.</strong></p>
   </div>
   <div class="how-box">
     <h3>진행 방법</h3>
@@ -273,7 +273,6 @@
     <p id="r-sub"></p>
   </div>
   <div class="stat-row">
-    <div class="stat-box"><div class="stat-label">정답 수</div><div class="stat-val g" id="r-score">0</div></div>
     <div class="stat-box"><div class="stat-label">총 소요시간</div><div class="stat-val y" id="r-time">0초</div></div>
     <div class="stat-box"><div class="stat-label">문제당 평균</div><div class="stat-val p" id="r-avg">-초</div></div>
   </div>
@@ -287,7 +286,7 @@
 <!-- LEADERBOARD -->
 <div id="leaderboard" class="screen">
   <div class="lb-title">🏆 순위표</div>
-  <div class="lb-sub">점수 높은 순 · 동점 시 빠른 시간 우선</div>
+  <div class="lb-sub">10문항을 모두 맞히기까지 걸린 시간이 짧은 순</div>
   <div class="lb-note" id="lb-note"></div>
   <div class="lb-card" id="lb-card"><div class="lb-empty">⏳ 불러오는 중...</div></div>
   <div class="lb-btns">
@@ -411,14 +410,13 @@ function localSave(rec){
   const i=rows.findIndex(r=>r.name===rec.name);
   if(i>=0){
     const old=rows[i];
-    if(rec.score>old.score||(rec.score===old.score&&rec.time_sec<old.time_sec))
-      rows[i]=Object.assign({},old,rec);
+    if(rec.time_sec<old.time_sec)rows[i]=Object.assign({},old,rec);
   }else{
     rows.push(Object.assign({id:'L'+Date.now()+Math.random().toString(36).slice(2,6)},rec));
   }
   sortScores(rows);localWrite(rows);
 }
-function sortScores(rows){rows.sort((a,b)=>b.score-a.score||a.time_sec-b.time_sec);return rows;}
+function sortScores(rows){rows.sort((a,b)=>a.time_sec-b.time_sec);return rows;}
 
 // ── DB 함수 ──
 // Supabase 오류를 사람이 읽을 수 있는 문구로 바꾼다.
@@ -437,7 +435,7 @@ function friendlyDbError(e){
 async function loadScores(){
   requireSb();
   const {data,error}=await sb.from('quiz_scores')
-    .select('*').order('score',{ascending:false}).order('time_sec',{ascending:true}).limit(30);
+    .select('*').order('time_sec',{ascending:true}).limit(30);
   if(error){
     // 원인 파악용: 콘솔에는 전체 오류 객체를 남긴다
     console.error('[quiz] loadScores 실패',error);
@@ -447,14 +445,14 @@ async function loadScores(){
 }
 async function saveScore(){
   requireSb();
-  const avg=myScore?Math.round(myTime/myScore):999;
+  const avg=Math.round(myTime/Q.length);
   // 같은 이름 기존 기록 확인
   const {data:existing,error:selErr}=await sb.from('quiz_scores')
     .select('id,score,time_sec').eq('name',myName);
   if(selErr)throw selErr;
   if(existing&&existing.length>0){
     const old=existing[0];
-    if(myScore>old.score||(myScore===old.score&&myTime<old.time_sec)){
+    if(myTime<old.time_sec){
       const {error}=await sb.from('quiz_scores')
         .update({score:myScore,time_sec:myTime,avg_sec:avg}).eq('id',old.id);
       if(error)throw error;
@@ -486,7 +484,7 @@ function renderQ(){
   solved=false;tries=0;
   const q=Q[current];
   document.getElementById('q-tag').textContent='문제 '+(current+1)+' / '+Q.length;
-  document.getElementById('score-summary').textContent=myName+' · '+myScore+'점 · '+myTime+'초';
+  document.getElementById('score-summary').textContent=myName+' · 누적 '+myTime+'초';
   document.getElementById('prog').style.width=((current/Q.length)*100)+'%';
   const srcEl=document.getElementById('q-src');
   srcEl.textContent=q.src;
@@ -599,9 +597,9 @@ function submitAns(){
     document.getElementById('hint-btn').style.display='none';
     document.getElementById('explain').innerHTML='<strong>💡 해설:</strong> '+q.ex;
     document.getElementById('explain').style.display='block';
-    document.getElementById('my-status').textContent='✅ 현재 '+myScore+'점 · 누적 '+myTime+'초';
+    document.getElementById('my-status').textContent='✅ 누적 '+myTime+'초';
     document.getElementById('next-btn').style.display='inline-block';
-    document.getElementById('score-summary').textContent=myName+' · '+myScore+'점 · '+myTime+'초';
+    document.getElementById('score-summary').textContent=myName+' · 누적 '+myTime+'초';
   } else {
     inp.className='ans-input ng';
     document.getElementById('input-area').className='input-area ng';
@@ -633,14 +631,12 @@ function nextQ(){if(!solved)return;current++;if(current>=Q.length){showResult();
 // ── 결과 ──
 async function showResult(){
   stopTimer();show('result');
-  const perfect=myScore===Q.length;
-  document.getElementById('r-title').textContent=perfect?'🏆 퍼펙트!':'🎯 완료!';
-  document.getElementById('r-sub').textContent=myName+' · '+myScore+'/'+Q.length+'문제 정답';
-  document.getElementById('r-score').textContent=myScore+'개';
+  document.getElementById('r-title').textContent='🏆 완주!';
+  document.getElementById('r-sub').textContent=myName+' · '+Q.length+'문항 완료';
   document.getElementById('r-time').textContent=myTime+'초';
-  document.getElementById('r-avg').textContent=(myScore?Math.round(myTime/myScore):'-')+'초';
+  document.getElementById('r-avg').textContent=Math.round(myTime/Q.length)+'초';
   // 서버 저장 성공 여부와 무관하게 이 기기에는 항상 남긴다
-  localSave({name:myName,score:myScore,time_sec:myTime,avg_sec:myScore?Math.round(myTime/myScore):999});
+  localSave({name:myName,score:myScore,time_sec:myTime,avg_sec:Math.round(myTime/Q.length)});
   const msg=document.getElementById('saving-msg');
   msg.textContent='💾 순위표에 저장 중...';
   try{
@@ -681,14 +677,13 @@ async function showLeaderboard(from){
   const rc=function(i){return i===0?'gold':i===1?'silver':i===2?'bronze':'';};
   card.innerHTML=
     '<div class="lb-header">'
-    +'<div></div><div>순위</div><div>이름</div><div>점수</div><div>소요시간</div><div>문제당 평균</div>'
+    +'<div></div><div>순위</div><div>이름</div><div>소요시간</div><div>문제당 평균</div>'
     +'</div>'
     +scores.map(function(s,i){
       return '<div class="lb-row '+rc(i)+'">'
         +'<div class="lb-check"><input type="checkbox" data-id="'+s.id+'" class="lb-checkbox"></div>'
         +'<div class="lb-rank">'+(medals[i]||(i+1))+'</div>'
         +'<div class="lb-name">'+esc(s.name)+'</div>'
-        +'<div class="lb-score">'+s.score+'/'+Q.length+'</div>'
         +'<div class="lb-time">'+s.time_sec+'초</div>'
         +'<div class="lb-avg">'+s.avg_sec+'초</div>'
         +'</div>';

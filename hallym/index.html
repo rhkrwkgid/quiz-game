@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gemini Notebook 퀴즈 게임: 한림성심대학교 행정직원 AI 교육</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #ffffff;
+    --bg2: #f5f5f3;
+    --bg3: #eeecea;
+    --text: #1a1a18;
+    --text2: #666660;
+    --border: rgba(0,0,0,0.12);
+    --border2: rgba(0,0,0,0.2);
+    --green: #1D9E75;
+    --green-light: #E1F5EE;
+    --green-dark: #0F6E56;
+    --red: #E24B4A;
+    --amber: #BA7517;
+    --silver: #888780;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1a;
+      --bg2: #252523;
+      --bg3: #2e2e2c;
+      --text: #f0ede8;
+      --text2: #9c9990;
+      --border: rgba(255,255,255,0.1);
+      --border2: rgba(255,255,255,0.18);
+      --green-light: #063d2c;
+    }
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
+    background: var(--bg3);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px 16px;
+  }
+
+  .container { max-width: 820px; margin: 0 auto; }
+
+  /* HERO */
+  .hero {
+    text-align: center;
+    padding: 48px 24px 40px;
+    margin: -24px -16px 32px;
+    background: linear-gradient(135deg, #0F6E56 0%, #1D9E75 40%, #2BC48A 100%);
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -60%; left: -20%;
+    width: 140%; height: 200%;
+    background: radial-gradient(ellipse at 30% 50%, rgba(255,255,255,0.12) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .hero::after {
+    content: '';
+    position: absolute;
+    bottom: -2px; left: 0; right: 0; height: 40px;
+    background: var(--bg3);
+    border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+  }
+  .hero-icon {
+    font-size: 56px;
+    margin-bottom: 12px;
+    animation: float 3s ease-in-out infinite;
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+  .hero h1 {
+    font-size: 28px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.02em;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+  .hero p {
+    font-size: 14px;
+    color: rgba(255,255,255,0.85);
+    margin-top: 8px;
+    font-weight: 400;
+  }
+  .hero-badges {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 18px;
+    flex-wrap: wrap;
+  }
+  .hero-badge {
+    background: rgba(255,255,255,0.18);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #fff;
+  }
+  .dot-grid {
+    position: absolute;
+    top: 16px; right: 20px;
+    display: grid;
+    grid-template-columns: repeat(4, 6px);
+    gap: 8px;
+    opacity: 0.2;
+  }
+  .dot-grid span {
+    width: 6px; height: 6px;
+    background: #fff;
+    border-radius: 50%;
+  }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* CARDS */
+  .card {
+    background: var(--bg);
+    border: 0.5px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.06);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.07), 0 2px 6px rgba(0,0,0,0.05);
+  }
+  .card h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card h3 .card-icon {
+    font-size: 18px;
+  }
+
+  /* INPUTS & BUTTONS */
+  input[type="text"], input[type="number"] {
+    background: var(--bg2);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 11px 14px;
+    color: var(--text);
+    font-size: 14px;
+    width: 100%;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  input:focus {
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px rgba(29,158,117,0.12);
+  }
+
+  button {
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    padding: 9px 18px;
+    border: 0.5px solid var(--border2);
+    background: var(--bg);
+    color: var(--text);
+    font-family: inherit;
+    font-weight: 500;
+    transition: background 0.15s, transform 0.08s;
+    white-space: nowrap;
+  }
+  button:hover { background: var(--bg2); }
+  button:active { transform: scale(0.97); }
+
+  .btn-primary { background: var(--green); color: white; border-color: var(--green); }
+  .btn-primary:hover { background: var(--green-dark); }
+  .btn-start {
+    background: linear-gradient(135deg, #1D9E75, #2BC48A);
+    color: #fff;
+    border: none;
+    border-radius: 14px;
+    padding: 16px 48px;
+    font-size: 18px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(29,158,117,0.35);
+    transition: transform 0.15s, box-shadow 0.15s;
+    letter-spacing: 0.02em;
+  }
+  .btn-start:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 6px 24px rgba(29,158,117,0.45);
+  }
+  .btn-start:active { transform: scale(0.97); }
+  .btn-danger { background: var(--red); color: white; border-color: var(--red); }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+  .btn-ghost { border-color: transparent; color: var(--text2); }
+  .btn-ghost:hover { background: var(--bg2); color: var(--text); }
+
+  /* SETUP */
+  .setup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 540px) { .setup-grid { grid-template-columns: 1fr; } }
+
+  .player-row { display: flex; gap: 8px; margin-bottom: 10px; }
+  .player-row input { flex: 1; }
+
+  .player-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; min-height: 32px; }
+  .tag {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: var(--green-light); border: 1px solid var(--green);
+    border-radius: 20px; padding: 5px 12px;
+    font-size: 13px; color: var(--green-dark);
+    font-weight: 500;
+  }
+  .tag-del { background: none; border: none; padding: 0; color: var(--text2); font-size: 15px; line-height: 1; cursor: pointer; }
+
+  .settings-row { display: flex; flex-direction: column; gap: 12px; }
+  .setting-item label { font-size: 12px; color: var(--text2); display: block; margin-bottom: 5px; }
+  .setting-item input { width: 100px; }
+
+  .q-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    border-bottom: 0.5px solid var(--border);
+    padding-bottom: 12px; margin-bottom: 12px;
+  }
+  .q-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .q-num { font-size: 12px; color: var(--text2); min-width: 24px; padding-top: 10px; font-weight: 500; }
+  .q-fields { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+  .q-fields input:last-child { font-size: 12px; color: var(--green-dark); }
+
+  /* GAME */
+  .game-header {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 20px;
+  }
+  .q-counter { font-size: 13px; color: var(--text2); font-weight: 500; white-space: nowrap; }
+  .progress-bar { flex: 1; height: 5px; background: var(--bg3); border-radius: 3px; }
+  .progress-fill { height: 100%; background: var(--green); border-radius: 3px; transition: width 0.4s; }
+
+  .question-card {
+    background: var(--bg);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px 24px;
+    margin-bottom: 16px;
+    min-height: 150px;
+    display: flex; flex-direction: column; justify-content: center;
+  }
+  .q-label { font-size: 12px; color: var(--green); font-weight: 600; letter-spacing: 0.05em; margin-bottom: 12px; }
+  .q-text { font-size: 22px; font-weight: 600; line-height: 1.55; color: var(--text); }
+
+  .answer-input-row {
+    display: flex; gap: 8px; margin-bottom: 16px;
+  }
+  .answer-input-row input { flex: 1; }
+
+  .answer-result {
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin-bottom: 16px;
+    display: none;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .answer-result.correct {
+    display: block;
+    background: var(--green-light);
+    border: 0.5px solid var(--green);
+    color: var(--green-dark);
+  }
+  .answer-result.wrong {
+    display: block;
+    background: #fdeaea;
+    border: 0.5px solid var(--red);
+    color: var(--red);
+  }
+  @media (prefers-color-scheme: dark) {
+    .answer-result.wrong { background: #3d1c1c; }
+  }
+
+  .game-controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+  /* SCOREBOARD */
+  .rank-row {
+    display: flex; align-items: center; gap: 14px;
+    background: var(--bg);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    margin-bottom: 8px;
+  }
+  .rank-num { font-size: 20px; font-weight: 700; min-width: 36px; }
+  .gold { color: var(--amber); }
+  .silver { color: var(--silver); }
+  .bronze { color: #993C1D; }
+  .rank-info { flex: 1; }
+  .rank-name { font-size: 16px; font-weight: 600; }
+  .rank-bar-bg { height: 4px; background: var(--bg3); border-radius: 2px; margin-top: 5px; }
+  .rank-bar { height: 4px; background: var(--green); border-radius: 2px; }
+  .rank-score { font-size: 22px; font-weight: 700; color: var(--green); }
+
+  /* WINNER */
+  .winner-card {
+    background: var(--green-light);
+    border: 1px solid var(--green);
+    border-radius: var(--radius);
+    padding: 36px 24px;
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  .trophy { font-size: 52px; margin-bottom: 8px; }
+  .winner-label { font-size: 13px; color: var(--green-dark); font-weight: 600; letter-spacing: 0.05em; margin-bottom: 8px; }
+  .winner-name { font-size: 36px; font-weight: 700; color: var(--green-dark); }
+  .winner-score { font-size: 18px; color: var(--green); margin-top: 6px; }
+
+  .btn-share {
+    margin-top: 16px;
+    background: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.4);
+    color: #fff;
+    border-radius: 10px;
+    padding: 10px 24px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s;
+  }
+  .btn-share:hover { background: rgba(255,255,255,0.3); }
+
+  .section-title { font-size: 18px; font-weight: 600; margin-bottom: 14px; }
+  .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+  .divider { border: none; border-top: 0.5px solid var(--border); margin: 20px 0; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ───── SETUP ───── -->
+  <div id="screen-setup" class="screen active">
+
+    <div class="hero">
+      <div class="dot-grid">
+        <span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span>
+      </div>
+      <div class="hero-icon">🌟</div>
+      <h1>Gemini Notebook 퀴즈 게임</h1>
+      <p>한림성심대학교 행정직원 AI 교육 · 실무과정 3 (노트북 소스에서 답을 찾아 입력하세요)</p>
+      <div class="hero-badges">
+        <span class="hero-badge">✏️ 총 15문제</span>
+        <span class="hero-badge">🌱 농업법 &middot; 축산법 &middot; 자조금법</span>
+      </div>
+    </div>
+
+    <div class="setup-grid">
+      <div class="card">
+        <h3><span class="card-icon">🐥</span> 참가자 등록</h3>
+        <div class="player-row">
+          <input type="text" id="player-input" placeholder="이름 입력 후 Enter" maxlength="20" />
+          <button onclick="addPlayer()" class="btn-sm">추가</button>
+        </div>
+        <div class="player-tags" id="player-tags"></div>
+        <p style="font-size:12px; color:var(--text2); margin-top:12px;">현재 <strong id="player-count">0</strong>명 등록됨</p>
+      </div>
+
+      <div class="card">
+        <h3><span class="card-icon">🎀</span> 게임 안내</h3>
+        <p style="font-size:14px; color:var(--text); line-height:1.7;">
+          모든 문제의 정답을 맞춘 뒤<br>
+          <strong style="color:var(--green);">소요 시간으로 순위 결정!</strong>
+        </p>
+      </div>
+    </div>
+
+    <div class="card" id="question-card" style="display:none;">
+      <h3>퀴즈 문제 <span style="font-weight:400;">(15문제, 수정 가능)</span></h3>
+      <div id="question-list"></div>
+    </div>
+
+    <div style="text-align:center; margin-top:12px;">
+      <button class="btn-start" onclick="startGame()">
+        🎮 게임 시작
+      </button>
+    </div>
+    <div style="text-align:center; margin-top:12px;">
+      <button class="btn-ghost" onclick="showRanking()" style="font-size:14px;">📊 최종 순위 보기</button>
+    </div>
+  </div>
+
+  <!-- ───── GAME ───── -->
+  <div id="screen-game" class="screen">
+    <div class="game-header">
+      <span class="q-counter" id="q-counter">문제 1 / 15</span>
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+      <button class="btn-sm" onclick="goScoreboard()">점수판</button>
+    </div>
+
+    <div class="question-card">
+      <div class="q-label">Q. <span id="q-num-display">1</span></div>
+      <div class="q-text" id="q-text-display"></div>
+    </div>
+
+    <div class="answer-input-row">
+      <input type="text" id="answer-input" placeholder="정답을 입력하세요" />
+      <button onclick="submitAnswer()" class="btn-primary" id="submit-btn">제출</button>
+    </div>
+
+    <div class="answer-result" id="answer-result"></div>
+
+    <div class="game-controls">
+      <div style="flex:1;"></div>
+      <button onclick="resetGame()" class="btn-ghost">처음으로</button>
+    </div>
+  </div>
+
+  <!-- ───── SCOREBOARD ───── -->
+  <div id="screen-scoreboard" class="screen">
+    <div class="top-bar">
+      <div class="section-title">현재 점수판</div>
+      <div style="display:flex; gap:8px;">
+        <button onclick="backToGame()">게임으로 돌아가기</button>
+        <button onclick="showFinalResults()" class="btn-primary">최종 결과</button>
+      </div>
+    </div>
+    <div id="scoreboard-list"></div>
+  </div>
+
+  <!-- ───── FINAL ───── -->
+  <div id="screen-final" class="screen">
+    <div class="winner-card" id="winner-card"></div>
+    <div class="section-title">최종 순위</div>
+    <div id="final-list"></div>
+
+    <div style="text-align:center; margin-top:24px; display:flex; justify-content:center; gap:12px;">
+      <button onclick="resetGame()" class="btn-primary" style="padding:12px 32px; font-size:15px;">다시 시작</button>
+      <button onclick="clearRanking()" class="btn-ghost" style="font-size:13px;">기록 초기화</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const DEFAULT_QUESTIONS = [
+  { q: "행정안전부 공공부문 AI 윤리기준의 핵심가치는 공공성, 형평성, 투명성, 책임성, 안전성, 그리고 무엇입니까?", a: "프라이버시 보호" },
+  { q: "공공부문 AI 윤리기준에 담긴 세부 점검항목은 모두 몇 개입니까?", a: "68개" },
+  { q: "AI 활용 수준에 따른 자율점검 3단계 중, 기초활용에 해당하는 1단계의 이름은 무엇입니까?", a: "적용" },
+  { q: "자율점검 3단계 중, 자율결정 기반에 해당하는 3단계의 이름은 무엇입니까?", a: "융합" },
+  { q: "윤리기준에 따르면 AI가 판단에 참여하는 업무에서도 최종 책임과 통제는 누구에게 있습니까?", a: "사람" },
+  { q: "개인정보위 안내서는 생성형 AI 개발·활용 과정을 몇 단계로 나눴습니까?", a: "4단계" },
+  { q: "개인정보위 안내서가 공개된 날짜는 2025년 몇 월 며칠입니까?", a: "8월 6일" },
+  { q: "개인정보위 안내서가 기관 안의 관리 체계(거버넌스) 중심으로 둔 개인정보 보호책임자를 영문 약자로 쓰면 무엇입니까?", a: "CPO" },
+  { q: "MBC 영상에서 공무원들이 AI 시스템을 만든 뒤, 약 한 달 걸리던 업무가 얼마로 줄었습니까?", a: "몇 시간" },
+  { q: "교직원 AI 활용 지침(안)에서 '별도 검토 없이 바로 운영할 수 있다'고 한 학생 대상 서비스는 무엇입니까?", a: "챗봇" },
+  { q: "자율점검 3단계 중, 의사결정 지원에 해당하는 2단계의 이름은 무엇입니까?", a: "응용" },
+  { q: "윤리기준 기사에서 최종 책임을 사람에게 두는 행정업무의 예로 '복지대상자 선정'과 함께 든 업무는 무엇입니까?", a: "인허가" },
+  { q: "MBC 영상에서 공무원들이 만든 통합 관제 시스템은 어떤 재해를 관리합니까?", a: "농업재해" },
+  { q: "교직원 AI 활용 지침(안)에서는 개인정보가 들어간 자료도 무엇만 지우면 AI에 넣어도 된다고 했습니까?", a: "이름" },
+  { q: "교직원 AI 활용 지침(안)에 없는 사항은 누가 정한다고 되어 있습니까?", a: "부서장" }
+];
+
+let players = [], questions = [], scores = {};
+let currentQ = 0;
+let pointValue = 1, awarded = false;
+let gameStartTime = null;
+
+// ── Build Q list ──
+function buildQuestionList() {
+  const el = document.getElementById('question-list');
+  el.innerHTML = DEFAULT_QUESTIONS.map((dq, i) => `
+    <div class="q-item">
+      <div class="q-num">${i+1}</div>
+      <div class="q-fields">
+        <input type="text" id="q${i}" value="${dq.q}" placeholder="문제를 입력하세요" />
+        <input type="text" id="a${i}" value="${dq.a}" placeholder="정답" />
+      </div>
+    </div>`).join('');
+}
+
+// ── Players ──
+document.getElementById('player-input').addEventListener('keydown', e => { if (e.key === 'Enter') addPlayer(); });
+
+function addPlayer() {
+  if (localStorage.getItem('hallymQuizPlayerName')) return;
+  const inp = document.getElementById('player-input');
+  const name = inp.value.trim();
+  if (!name || players.includes(name)) { inp.value = ''; return; }
+  players.push(name); scores[name] = 0;
+  localStorage.setItem('hallymQuizPlayerName', name);
+  renderTags(); inp.value = '';
+  disableRegistration(name);
+}
+
+function disableRegistration(name) {
+  const inp = document.getElementById('player-input');
+  inp.disabled = true;
+  inp.placeholder = `"${name}" 등록 완료`;
+  inp.nextElementSibling && (inp.nextElementSibling.style.display = 'none');
+}
+
+function removePlayer(i) {
+  const removed = players[i];
+  if (localStorage.getItem('hallymQuizPlayerName') === removed) {
+    localStorage.removeItem('hallymQuizPlayerName');
+    const inp = document.getElementById('player-input');
+    inp.disabled = false;
+    inp.placeholder = '이름 입력 후 Enter';
+    const btn = document.querySelector('.player-row .btn-sm');
+    if (btn) btn.style.display = '';
+  }
+  delete scores[removed]; players.splice(i, 1); renderTags();
+}
+
+function renderTags() {
+  document.getElementById('player-tags').innerHTML =
+    players.map((p, i) => `<span class="tag">${p}<button class="tag-del" onclick="removePlayer(${i})">×</button></span>`).join('');
+  document.getElementById('player-count').textContent = players.length;
+}
+
+// ── 페이지 로드 시 이미 등록된 이름 복원 ──
+(function restorePlayer() {
+  const saved = localStorage.getItem('hallymQuizPlayerName');
+  if (saved) {
+    players.push(saved); scores[saved] = 0;
+    renderTags();
+    disableRegistration(saved);
+  }
+})();
+
+// ── Start ──
+function startGame() {
+  if (!players.length) { alert('참가자를 1명 이상 등록하세요.'); return; }
+  questions = DEFAULT_QUESTIONS.map(dq => ({q: dq.q, a: dq.a}));
+  if (!questions.length) { alert('퀴즈 문제를 입력하세요.'); return; }
+  players.forEach(p => scores[p] = 0);
+  currentQ = 0;
+  gameStartTime = Date.now();
+  showScreen('game'); loadQuestion();
+}
+
+// ── Screen ──
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+}
+
+// ── Load Q ──
+function loadQuestion() {
+  awarded = false;
+  const q = questions[currentQ];
+  document.getElementById('q-num-display').textContent = currentQ + 1;
+  document.getElementById('q-text-display').textContent = q.q;
+  document.getElementById('q-counter').textContent = `문제 ${currentQ+1} / ${questions.length}`;
+  document.getElementById('progress-fill').style.width = `${(currentQ / questions.length) * 100}%`;
+  document.getElementById('answer-input').value = '';
+  document.getElementById('answer-input').disabled = false;
+  document.getElementById('submit-btn').disabled = false;
+  const result = document.getElementById('answer-result');
+  result.className = 'answer-result';
+  result.textContent = '';
+}
+
+// ── 정답 제출 ──
+document.getElementById('answer-input').addEventListener('keydown', e => { if (e.key === 'Enter') submitAnswer(); });
+
+function submitAnswer() {
+  if (awarded) return;
+  const input = document.getElementById('answer-input').value.trim();
+  if (!input) return;
+  const correct = questions[currentQ].a;
+  const normalize = s => s.replace(/[\s()（）]/g, '').toLowerCase();
+  const isCorrect = normalize(input) === normalize(correct) || normalize(correct).includes(normalize(input)) || normalize(input).includes(normalize(correct));
+  const result = document.getElementById('answer-result');
+  const playerName = localStorage.getItem('hallymQuizPlayerName');
+  if (isCorrect) {
+    awarded = true;
+    result.className = 'answer-result correct';
+    result.textContent = '정답입니다!';
+    if (playerName && scores[playerName] !== undefined) scores[playerName] += pointValue;
+    document.getElementById('answer-input').disabled = true;
+    document.getElementById('submit-btn').disabled = true;
+    setTimeout(() => nextQuestion(), 500);
+  } else {
+    result.className = 'answer-result wrong';
+    result.textContent = '오답입니다. 다시 시도해보세요!';
+    document.getElementById('answer-input').value = '';
+    document.getElementById('answer-input').focus();
+  }
+}
+
+// ── Nav ──
+function nextQuestion() {
+  if (currentQ < questions.length - 1) { currentQ++; loadQuestion(); }
+  else showFinalResults();
+}
+
+// ── Scoreboard ──
+function goScoreboard() { renderRanking('scoreboard-list'); showScreen('scoreboard'); }
+function backToGame() { showScreen('game'); }
+
+// ── Final ──
+function formatTime(ms) {
+  const totalSec = Math.floor(ms / 1000);
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  return min > 0 ? `${min}분 ${sec}초` : `${sec}초`;
+}
+
+function saveResult(name, time) {
+  const results = JSON.parse(localStorage.getItem('hallymQuizResults') || '[]');
+  const existing = results.findIndex(r => r.name === name);
+  if (existing >= 0) {
+    if (time < results[existing].time) results[existing].time = time;
+  } else {
+    results.push({ name, time });
+  }
+  localStorage.setItem('hallymQuizResults', JSON.stringify(results));
+}
+
+function loadResults() {
+  return JSON.parse(localStorage.getItem('hallymQuizResults') || '[]').sort((a, b) => a.time - b.time);
+}
+
+function renderRanking(id) {
+  const results = loadResults();
+  const medals = [['gold','1위'],['silver','2위'],['bronze','3위']];
+  const max = results.length ? Math.max(...results.map(r => r.time)) : 1;
+  if (!results.length) {
+    document.getElementById(id).innerHTML = '<p style="text-align:center; color:var(--text2); padding:24px;">아직 완료한 참가자가 없습니다.</p>';
+    return;
+  }
+  document.getElementById(id).innerHTML = results.map((r, i) => {
+    const [cls, label] = medals[i] || ['', `${i+1}위`];
+    return `<div class="rank-row">
+      <div class="rank-num ${cls}">${label}</div>
+      <div class="rank-info">
+        <div class="rank-name">${r.name}</div>
+        <div class="rank-bar-bg"><div class="rank-bar" style="width:${Math.round((r.time/max)*100)}%"></div></div>
+      </div>
+      <div class="rank-score">${formatTime(r.time)}</div>
+    </div>`;
+  }).join('');
+}
+
+function showFinalResults() {
+  const elapsed = Date.now() - gameStartTime;
+  const playerName = localStorage.getItem('hallymQuizPlayerName');
+  if (playerName) {
+    saveResult(playerName, elapsed);
+  }
+  const results = loadResults();
+  const w = results[0];
+  // 완료 화면: 본인 기록 + 공유 버튼
+  let html = '';
+  if (playerName) {
+    const shareData = btoa(encodeURIComponent(JSON.stringify({ n: playerName, t: elapsed })));
+    const shareUrl = location.href.split('?')[0].split('#')[0] + '?r=' + shareData;
+    html = `
+      <div class="trophy">🎉</div>
+      <div class="winner-label">퀴즈 완료!</div>
+      <div class="winner-name">${playerName}</div>
+      <div class="winner-score">소요 시간: ${formatTime(elapsed)}</div>
+      <button onclick="copyShareLink('${shareData}')" class="btn-share" id="share-btn">📋 결과 공유하기</button>
+      <p id="share-msg" style="font-size:12px; color:rgba(255,255,255,0.7); margin-top:8px;"></p>`;
+  } else if (w) {
+    html = `
+      <div class="trophy">🏆</div>
+      <div class="winner-label">현재 1위</div>
+      <div class="winner-name">${w.name}</div>
+      <div class="winner-score">소요 시간: ${formatTime(w.time)}</div>`;
+  }
+  document.getElementById('winner-card').innerHTML = html;
+  renderRanking('final-list');
+  showScreen('final');
+}
+
+function copyShareLink(data) {
+  const url = location.href.split('?')[0].split('#')[0] + '?r=' + data;
+  navigator.clipboard.writeText(url).then(() => {
+    document.getElementById('share-msg').textContent = '링크가 복사되었습니다! 선생님께 보내주세요.';
+    document.getElementById('share-btn').textContent = '✅ 복사 완료!';
+  }).catch(() => {
+    prompt('아래 링크를 복사해서 선생님께 보내주세요:', url);
+  });
+}
+
+// URL 파라미터로 전달된 결과 수집
+function collectFromUrl() {
+  const params = new URLSearchParams(location.search);
+  const r = params.get('r');
+  if (r) {
+    try {
+      const data = JSON.parse(decodeURIComponent(atob(r)));
+      if (data.n && data.t > 0) {
+        saveResult(data.n, data.t);
+        // URL 정리
+        history.replaceState(null, '', location.href.split('?')[0]);
+        // 바로 순위 화면 표시
+        showRanking();
+        return true;
+      }
+    } catch(e) {}
+  }
+  return false;
+}
+
+function showRanking() {
+  const results = loadResults();
+  const w = results[0];
+  document.getElementById('winner-card').innerHTML = w ? `
+    <div class="trophy">🏆</div>
+    <div class="winner-label">현재 1위</div>
+    <div class="winner-name">${w.name}</div>
+    <div class="winner-score">소요 시간: ${formatTime(w.time)}</div>` : '';
+  renderRanking('final-list');
+  showScreen('final');
+}
+
+function clearRanking() {
+  if (confirm('모든 순위 기록을 삭제하시겠습니까?')) {
+    localStorage.removeItem('hallymQuizResults');
+    renderRanking('final-list');
+    document.getElementById('winner-card').innerHTML = '';
+  }
+}
+
+function resetGame() {
+  players = []; scores = {}; currentQ = 0;
+  // localStorage에 저장된 참가자 복원
+  const saved = localStorage.getItem('hallymQuizPlayerName');
+  if (saved) {
+    players.push(saved); scores[saved] = 0;
+    renderTags();
+    disableRegistration(saved);
+  } else {
+    renderTags();
+  }
+  showScreen('setup');
+}
+
+buildQuestionList();
+collectFromUrl();
+</script>
+</body>
+</html>
